@@ -11,7 +11,7 @@ const rateLimit = {};
 
 // Middleware
 app.use(bodyParser.json());
-app.set('trust proxy', true); // nécessaire si reverse proxy (Vercel, Nginx, etc.)
+app.set('trust proxy', true); // nécessaire pour récupérer la vraie IP sur Render
 
 // Servir les fichiers frontend (si dans dossier "public")
 app.use(express.static(path.join(__dirname, 'public')));
@@ -38,8 +38,10 @@ async function sendTokens(address) {
 
 // Route API
 app.post('/request', async (req, res) => {
-    const ip = req.ip;
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
     const address = req.body.address;
+
+    console.log('Request from IP:', ip); // Pour debug
 
     if (!address || !address.startsWith('0x') || address.length !== 42) {
         return res.status(400).json({ error: 'Invalid wallet address' });
