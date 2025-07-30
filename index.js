@@ -33,7 +33,7 @@ app.post("/request", async (req, res) => {
   try {
     // Check wallet balance first
     const balance = await wallet.provider.getBalance(wallet.address);
-    const requiredAmount = ethers.parseEther("0.01");
+    const requiredAmount = ethers.parseEther("0.1");
 
     if (balance < requiredAmount) {
       return res.status(500).json({ error: "Faucet wallet has insufficient funds" });
