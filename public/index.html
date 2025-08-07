@@ -176,11 +176,11 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    const explorerUrl = `https://explorer.plasma.to/tx/${data.txHash}`;
+                    const explorerUrl = `https://testnet.plasmascan.to/tx/${data.txHash}`;
                     result.innerHTML = `
                     <div class="result success">
                     ✅ Success! Your transaction was sent.<br>
-                    <a href="${explorerUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 14px;background:#320A6B;color:#fff;border-radius:6px;text-decoration:none;">View on Explorer</a>
+                    <a href="${explorerUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">View on Explorer</a>
                     </div>`;
 
                 } else {
