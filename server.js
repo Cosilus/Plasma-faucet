@@ -1,66 +1,51 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
-const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Mémoire temporaire pour limiter par IP
-const rateLimit = {};
-
-// Middleware
 app.use(bodyParser.json());
-app.set('trust proxy', true); // nécessaire pour récupérer la vraie IP sur Render
 
-// Servir les fichiers frontend (si dans dossier "public")
-app.use(express.static(path.join(__dirname, 'public')));
+const DELAI = 24 * 60 * 60 * 1000; 
+const lastRequests = {}; 
 
-function hasRequestedToday(ip) {
-    const now = new Date();
-    const last = rateLimit[ip];
 
-    if (!last) return false;
-
-    return new Date(last).toDateString() === now.toDateString();
-}
-
-function recordRequest(ip) {
-    rateLimit[ip] = new Date();
-}
-
-// Simule une requête réseau (à remplacer par envoi réel sur Plasma)
 async function sendTokens(address) {
-    return {
-        txHash: `0x${Math.random().toString(16).slice(2)}abcd`
-    };
+    
+    console.log(`Tokens envoyés à ${address}`);
+    return "0x123456789abcdef"; 
 }
 
-// Route API
 app.post('/request', async (req, res) => {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
-    const address = req.body.address;
+    const { address } = req.body;
 
-    console.log('Request from IP:', ip); // Pour debug
-
-    if (!address || !address.startsWith('0x') || address.length !== 42) {
+   
+    if (!address || !address.startsWith('0x') || address.length < 10) {
         return res.status(400).json({ error: 'Invalid wallet address' });
     }
 
-    if (hasRequestedToday(ip)) {
-        return res.status(429).json({ error: 'You can only request tokens once per day.' });
+    const now = Date.now();
+
+
+    if (lastRequests[address] && (now - lastRequests[address]) < DELAI) {
+        const cooldownRestant = DELAI - (now - lastRequests[address]);
+        return res.status(429).json({
+            error: 'Please wait before requesting again',
+            cooldown: cooldownRestant
+        });
     }
 
     try {
-        const tx = await sendTokens(address);
-        recordRequest(ip);
-        res.json({ txHash: tx.txHash });
-    } catch (e) {
-        res.status(500).json({ error: 'Token transfer failed' });
+        const txHash = await sendTokens(address);
+
+        lastRequests[address] = now;
+
+        res.json({ txHash });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Démarrage
-app.listen(PORT, () => {
-    console.log(`✅ Faucet server running at http://localhost:${PORT}`);
+app.listen(3000, () => {
+    console.log('🚀 Faucet backend running on http://localhost:3000');
 });
