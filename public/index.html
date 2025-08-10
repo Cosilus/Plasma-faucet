@@ -2,48 +2,47 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Plasma Faucet</title>
     <style>
         body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: url('background.png') no-repeat center center fixed;
-    background-size: cover;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    height: 100vh;
-    margin: 0;
-    padding-top: 60px;
-}
-
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('background.png') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding-top: 60px;
+        }
 
         .container {
-      background: #2C4444;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-      max-width: 500px;
-      width: 90%;
-      text-align: center;
-      position: relative;
-    }
+            background: #2C4444;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+        }
 
-    .logo {
-      position: absolute;
-      top: 55px;
-      left: 60px;
-      width: 42px;
-      height: 42px;
-      object-fit: contain;
-      border-radius: 50%;
-    }
+        .logo {
+            position: absolute;
+            top: 55px;
+            left: 60px;
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            border-radius: 50%;
+        }
 
-    h1 {
-      font-size: 2rem;
-      color: #D8E6F3;
-      margin-bottom: 10px;
+        h1 {
+            font-size: 2rem;
+            color: #D8E6F3;
+            margin-bottom: 10px;
         }
 
         p {
@@ -69,7 +68,6 @@
             border-radius: 30px;
             font-size: 18px;
             cursor: pointer;
-
         }
 
         button:hover {
@@ -103,6 +101,7 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
         @media (max-width: 600px) {
             .logo {
                 top: 20px;
@@ -111,21 +110,21 @@
                 width: 36px;
                 height: 36px;
             }
-            
+
             .container {
                 padding-top: 60px;
             }
         }
-        .footer-credit {
-    position: fixed;
-    bottom: 10px;
-    right: 16px;
-    font-size: 12px;
-    color: #D8E6F3;
-    opacity: 0.8;
-    z-index: 1000;
-}
 
+        .footer-credit {
+            position: fixed;
+            bottom: 10px;
+            right: 16px;
+            font-size: 12px;
+            color: #D8E6F3;
+            opacity: 0.8;
+            z-index: 1000;
+        }
     </style>
 </head>
 
@@ -135,70 +134,92 @@
         <h1>Plasma Testnet Faucet</h1>
         <p>Request 0.1 XPL for testing on Plasma testnet</p>
 
-        <input type="text" id="address" placeholder="Enter your wallet address (0x...)">
-        <button onclick="requestTokens()">Request Tokens</button>
+        <input type="text" id="address" placeholder="Enter your wallet address (0x...)" />
+        <button id="requestBtn" onclick="requestTokens()">Request Tokens</button>
 
         <div id="result"></div>
     </div>
 
-   <script>
-    async function requestTokens() {
-        const address = document.getElementById('address').value;
-        const button = document.querySelector('button');
-        const result = document.getElementById('result');
+    <script>
+        const DELAI = 24 * 60 * 60 * 1000; // 24h en ms
+        const STORAGE_KEY = 'lastRequestTime';
 
-        if (!address || !address.startsWith('0x')) {
-            result.innerHTML = `<div class="result error">⚠️ Please enter a valid wallet address.</div>`;
-            return;
+        function hideButtonFor24h() {
+            const button = document.getElementById('requestBtn');
+            const lastRequest = localStorage.getItem(STORAGE_KEY);
+
+            if (lastRequest) {
+                const diff = Date.now() - parseInt(lastRequest, 10);
+                if (diff < DELAI) {
+                    button.style.visibility = 'hidden';
+
+                    setTimeout(() => {
+                        button.style.visibility = 'visible';
+                        localStorage.removeItem(STORAGE_KEY);
+                    }, DELAI - diff);
+
+                    return true;
+                }
+            }
+            return false;
         }
 
-        button.disabled = true;
-        button.textContent = 'Sending...';
-        result.innerHTML = '';
+        async function requestTokens() {
+            const address = document.getElementById('address').value;
+            const button = document.getElementById('requestBtn');
+            const result = document.getElementById('result');
 
-        try {
-            const response = await fetch('https://plasma-faucet-2-0.onrender.com/request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ address })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Transaction envoyée
-                const explorerUrl = `https://testnet.plasmascan.to/tx/${data.txHash}`;
-                result.innerHTML = `
-                    <div class="result success">
-                    ✅ Success! Your transaction was sent.<br>
-                    <a href="${explorerUrl}" target="_blank" rel="noopener"
-                    style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">
-                    View on Explorer</a>
-                    </div>`;
-            } 
-            else if (response.status === 429) {
-                // Cooldown actif
-                const cooldownMs = data.cooldown;
-                const cooldownSeconds = Math.ceil(cooldownMs / 1000);
-                const h = Math.floor(cooldownSeconds / 3600);
-                const m = Math.floor((cooldownSeconds % 3600) / 60);
-                const s = cooldownSeconds % 60;
-                result.innerHTML = `<div class="result error">⏳ Please wait ${h}h ${m}m ${s}s before requesting again.</div>`;
-            } 
-            else {
-                result.innerHTML = `<div class="result error">❌ Error: ${data.error}</div>`;
+            if (!address || !address.startsWith('0x')) {
+                result.innerHTML = '<div class="result error">Adresse invalide</div>';
+                return;
             }
 
-        } catch (error) {
-            result.innerHTML = `<div class="result error">⚠️ Network error: ${error.message}</div>`;
-        } finally {
-            button.disabled = false;
-            button.textContent = 'Request Tokens';
+            button.disabled = true;
+            button.textContent = 'Sending...';
+            result.innerHTML = '';
+
+            try {
+                const response = await fetch('/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+                    button.style.visibility = 'hidden';
+
+                    const explorerUrl = `https://testnet.plasmascan.to/tx/${data.txHash}`;
+                    result.innerHTML = `
+                    <div class="result success">
+                        ✅ Success! Your transaction was sent.<br>
+                        <a href="${explorerUrl}" target="_blank" rel="noopener"
+                        style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">View on Explorer</a>
+                    </div>`;
+
+                    
+                    setTimeout(() => {
+                        button.style.visibility = 'visible';
+                        localStorage.removeItem(STORAGE_KEY);
+                    }, DELAI);
+                } else {
+                    result.innerHTML = `<div class="result error">❌ Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="result error">⚠️ Network error: ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Request Tokens';
+            }
         }
-    }
-</script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+            hideButtonFor24h();
+        });
+    </script>
+
     <div class="footer-credit">Built by Techaddict</div>
 </body>
 
