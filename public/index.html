@@ -141,59 +141,64 @@
         <div id="result"></div>
     </div>
 
-    <script>
-        async function requestTokens() {
-            const address = document.getElementById('address').value;
-            const button = document.querySelector('button');
-            const result = document.getElementById('result');
+   <script>
+    async function requestTokens() {
+        const address = document.getElementById('address').value;
+        const button = document.querySelector('button');
+        const result = document.getElementById('result');
 
-            if (!address || !address.startsWith('0x')) {
+        if (!address || !address.startsWith('0x')) {
+            result.innerHTML = `<div class="result error">⚠️ Please enter a valid wallet address.</div>`;
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Sending...';
+        result.innerHTML = '';
+
+        try {
+            const response = await fetch('/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ address })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Transaction envoyée
                 const explorerUrl = `https://testnet.plasmascan.to/tx/${data.txHash}`;
                 result.innerHTML = `
-                <div class="result success">
-                ✅ Success! Your transaction was sent.<br>
-                <a href="${explorerUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">View on Explorer</a>
-                </div>`;
-
-                return;
-            }
-
-            button.disabled = true;
-            button.textContent = 'Sending...';
-            result.innerHTML = '';
-
-            try {
-                const response = await fetch('/request', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        address
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    const explorerUrl = `https://testnet.plasmascan.to/tx/${data.txHash}`;
-                    result.innerHTML = `
                     <div class="result success">
                     ✅ Success! Your transaction was sent.<br>
-                    <a href="${explorerUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">View on Explorer</a>
+                    <a href="${explorerUrl}" target="_blank" rel="noopener"
+                    style="display:inline-block;margin-top:8px;padding:8px 14px;background:#9E8E6D;color:#D8E6F3;border-radius:6px;text-decoration:none;">
+                    View on Explorer</a>
                     </div>`;
-
-                } else {
-                    result.innerHTML = `<div class="result error">❌ Error: ${data.error}</div>`;
-                }
-            } catch (error) {
-                result.innerHTML = `<div class="result error">⚠️ Network error: ${error.message}</div>`;
-            } finally {
-                button.disabled = false;
-                button.textContent = 'Request Tokens';
+            } 
+            else if (response.status === 429) {
+                // Cooldown actif
+                const cooldownMs = data.cooldown;
+                const cooldownSeconds = Math.ceil(cooldownMs / 1000);
+                const h = Math.floor(cooldownSeconds / 3600);
+                const m = Math.floor((cooldownSeconds % 3600) / 60);
+                const s = cooldownSeconds % 60;
+                result.innerHTML = `<div class="result error">⏳ Please wait ${h}h ${m}m ${s}s before requesting again.</div>`;
+            } 
+            else {
+                result.innerHTML = `<div class="result error">❌ Error: ${data.error}</div>`;
             }
+
+        } catch (error) {
+            result.innerHTML = `<div class="result error">⚠️ Network error: ${error.message}</div>`;
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Request Tokens';
         }
-    </script>
+    }
+</script>
     <div class="footer-credit">Built by Techaddict</div>
 </body>
 
